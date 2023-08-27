@@ -8,6 +8,26 @@
 # TODO: switch undo moves to stack data structure
 import chess_engine
 from enums import Player
+import chess_engine
+import pygame as py
+import logging
+import colorlog
+
+handler = colorlog.StreamHandler()
+handler.setFormatter(colorlog.ColoredFormatter(
+    '%(log_color)s%(asctime)s - %(levelname)s - %(message)s',
+    log_colors={
+        'DEBUG': 'green',
+        'INFO': 'green',
+        'WARNING': 'yellow',
+        'ERROR': 'red',
+        'CRITICAL': 'bold_red'
+    }))
+
+# Create a logger object
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)  # Set the logging level to DEBUG
+logger.addHandler(handler)
 
 
 class chess_ai:
@@ -18,7 +38,10 @@ class chess_ai:
     '''
     def minimax_white(self, game_state, depth, alpha, beta, maximizing_player, player_color):
         csc = game_state.checkmate_stalemate_checker()
+        #depending on whose turn it is the mazjiming player will be true or not
         if maximizing_player:
+            # "checkmate stalemate checker"
+            logger.info("tries to find the best move for the white")
             if csc == 0:
                 return 5000000
             elif csc == 1:
@@ -26,6 +49,7 @@ class chess_ai:
             elif csc == 2:
                 return 100
         elif not maximizing_player:
+            logger.info("doesn't try to find the maximum for the white player")
             if csc == 1:
                 return 5000000
             elif csc == 0:
@@ -37,13 +61,14 @@ class chess_ai:
             return self.evaluate_board(game_state, Player.PLAYER_1)
 
         if maximizing_player:
+            #had to change het evaluation to 1000000 instead of -100000
             max_evaluation = -10000000
             all_possible_moves = game_state.get_all_legal_moves("black")
             for move_pair in all_possible_moves:
                 game_state.move_piece(move_pair[0], move_pair[1], True)
                 evaluation = self.minimax_white(game_state, depth - 1, alpha, beta, False, "white")
                 game_state.undo_move()
-
+                #had to change the comparison to the oppsote of white
                 if max_evaluation < evaluation:
                     max_evaluation = evaluation
                     best_possible_move = move_pair
@@ -55,14 +80,15 @@ class chess_ai:
             else:
                 return max_evaluation
         else:
+            #had to change thte min_evaluation rom 10000 tto -10000
             min_evaluation = 10000000
             all_possible_moves = game_state.get_all_legal_moves("white")
             for move_pair in all_possible_moves:
                 game_state.move_piece(move_pair[0], move_pair[1], True)
                 evaluation = self.minimax_white(game_state, depth - 1, alpha, beta, True, "black")
                 game_state.undo_move()
-
-                if min_evaluation > evaluation:
+                #had to change the comparisonn, to opposte of white
+                if min_evaluation >evaluation:
                     min_evaluation = evaluation
                     best_possible_move = move_pair
                 beta = min(beta, evaluation)
@@ -73,9 +99,13 @@ class chess_ai:
             else:
                 return min_evaluation
 
+
+
+    #def minimax_white(self, game_state, depth, alpha, beta, maximizing_player, player_color):
     def minimax_black(self, game_state, depth, alpha, beta, maximizing_player, player_color):
         csc = game_state.checkmate_stalemate_checker()
         if maximizing_player:
+            logger.info("tries to find the best move for the black")
             if csc == 1:
                 return 5000000
             elif csc == 0:
@@ -83,6 +113,7 @@ class chess_ai:
             elif csc == 2:
                 return 100
         elif not maximizing_player:
+            logger.info("doesn't try to find the best move for the black")
             if csc == 0:
                 return 5000000
             elif csc == 1:
@@ -101,6 +132,7 @@ class chess_ai:
                 evaluation = self.minimax_black(game_state, depth - 1, alpha, beta, False, "black")
                 game_state.undo_move()
 
+                #here is the misake with the black moves
                 if max_evaluation < evaluation:
                     max_evaluation = evaluation
                     best_possible_move = move_pair
@@ -143,19 +175,6 @@ class chess_ai:
         if player is Player.PLAYER_1:
             if piece.is_player("black"):
                 if piece.get_name() is "k":
-                    return -1000
-                elif piece.get_name() is "q":
-                    return -100
-                elif piece.get_name() is "r":
-                    return -50
-                elif piece.get_name() is "b":
-                    return -30
-                elif piece.get_name() is "n":
-                    return -30
-                elif piece.get_name() is "p":
-                    return -10
-            else:
-                if piece.get_name() is "k":
                     return 1000
                 elif piece.get_name() is "q":
                     return 100
@@ -167,6 +186,19 @@ class chess_ai:
                     return 30
                 elif piece.get_name() is "p":
                     return 10
+            else:
+                if piece.get_name() is "k":
+                    return -1000
+                elif piece.get_name() is "q":
+                    return -100
+                elif piece.get_name() is "r":
+                    return -50
+                elif piece.get_name() is "b":
+                    return -30
+                elif piece.get_name() is "n":
+                    return -30
+                elif piece.get_name() is "p":
+                    return -10
         else:
             if piece.is_player("white"):
                 if piece.get_name() is "k":
