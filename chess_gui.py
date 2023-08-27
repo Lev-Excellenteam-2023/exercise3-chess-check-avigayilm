@@ -7,6 +7,8 @@
 #
 import chess_engine
 import pygame as py
+import logging
+import colorlog
 
 import ai_engine
 from enums import Player
@@ -86,7 +88,33 @@ def highlight_square(screen, game_state, valid_moves, square_selected):
 
 
 def main():
+
+
+    handler = colorlog.StreamHandler()
+    handler.setFormatter(colorlog.ColoredFormatter(
+        '%(log_color)s%(asctime)s - %(levelname)s - %(message)s',
+        log_colors={
+            'DEBUG': 'green',
+            'INFO': 'green',
+            'WARNING': 'yellow',
+            'ERROR': 'red',
+            'CRITICAL': 'bold_red'
+        }))
+
+    # Create a logger object
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)  # Set the logging level to DEBUG
+    logger.addHandler(handler)
+
+    # Log some messages
+    # logger.debug('This is a debug message')
+    # logger.info('This is an info message')
+    # logger.warning('This is a warning message')
+    # logger.error('This is an error message')
+    # logger.critical('This is a critical message')
+
     # Check for the number of players and the color of the AI
+
     human_player = ""
     while True:
         try:
@@ -102,6 +130,7 @@ def main():
                 break
             elif int(number_of_players) == 2:
                 number_of_players = 2
+                #logger.info('Two players are using the game')
                 break
             else:
                 print("Enter 1 or 2.\n")
@@ -122,48 +151,99 @@ def main():
     ai = ai_engine.chess_ai()
     game_state = chess_engine.game_state()
     if human_player is 'b':
+        #def minimax_white(self, game_state, depth, alpha, beta, maximizing_player, player_color):
+        # returns the best move ((row, col), so on place[0]= row, and [1]=column
         ai_move = ai.minimax_black(game_state, 3, -100000, 100000, True, Player.PLAYER_1)
         game_state.move_piece(ai_move[0], ai_move[1], True)
 
+
+#now it is human turn
     while running:
         for e in py.event.get():
+            # if the player clicks the window's close button
             if e.type == py.QUIT:
+                # set the running variable to False to exit the loop and end the game
                 running = False
+            # if the player clicks the mouse button
             elif e.type == py.MOUSEBUTTONDOWN:
+                # if the game is not over
                 if not game_over:
+                    # get the coordinates of the mouse click
                     location = py.mouse.get_pos()
+                    # calculate the row and column of the clicked square on the chessboard
                     col = location[0] // SQ_SIZE
                     row = location[1] // SQ_SIZE
+                    # if the player clicks on the same square twice
+                    #becuase it checks if he newly clicked qured is he same as tthe square
+                    #that the player had previously selected.
                     if square_selected == (row, col):
+                        # if pressed twice the squre selecttted is deseleced.
                         square_selected = ()
                         player_clicks = []
+                    # if the player clicks on a different square
                     else:
+                        # set the square_selected variable to the new square
                         square_selected = (row, col)
+                        # add the new square to the player_clicks list
                         player_clicks.append(square_selected)
+                    # if the player has clicked on two squares
                     if len(player_clicks) == 2:
-                        # this if is useless right now
+                        # if the second square is not a valid move for the selected piece
                         if (player_clicks[1][0], player_clicks[1][1]) not in valid_moves:
+                            # reset the square_selected, player_clicks, and valid_moves variables
                             square_selected = ()
                             player_clicks = []
                             valid_moves = []
+                        # if the second square is a valid move for the selected piece
                         else:
+                            # move the piece on the game_state object
                             game_state.move_piece((player_clicks[0][0], player_clicks[0][1]),
                                                   (player_clicks[1][0], player_clicks[1][1]), False)
+                            # reset the square_selected, player_clicks, and valid_moves variables
                             square_selected = ()
                             player_clicks = []
                             valid_moves = []
 
+                            print("hi")
+
+                            # if it is the human player's turn
                             if human_player is 'w':
+                                # call the minimax_white function of the ai object to get the AI player's move
+                                #player 2 is black
                                 ai_move = ai.minimax_white(game_state, 3, -100000, 100000, True, Player.PLAYER_2)
+                                # execute the AI player's move on the game_state object
                                 game_state.move_piece(ai_move[0], ai_move[1], True)
                             elif human_player is 'b':
+                                # call the minimax_black function of the ai object to get the AI player's move
                                 ai_move = ai.minimax_black(game_state, 3, -100000, 100000, True, Player.PLAYER_1)
+                                # execute the AI player's move on the game_state object
                                 game_state.move_piece(ai_move[0], ai_move[1], True)
+                    # if no piece is currently selected
                     else:
+                        # get a list of valid moves for the clicked square from the game_state object
                         valid_moves = game_state.get_valid_moves((row, col))
+                        # if there are no valid moves for the clicked square
                         if valid_moves is None:
+                            # set the valid_moves variable to an empty list
                             valid_moves = []
+
+                    endgame = game_state.checkmate_stalemate_checker()
+                    print(endgame)
+                    if endgame == 0:
+                        game_over = True
+                        draw_text(screen, "Black wins.")
+                    elif endgame == 1:
+                        game_over = True
+                        draw_text(screen, "White wins.")
+                    elif endgame == 2:
+                        game_over = True
+                        draw_text(screen, "Stalemate.")
+
+                # if the game is over you should break fromm tthe loop
+                else:
+                    break
             elif e.type == py.KEYDOWN:
+                # checks if the key pressed is the "r" key. If it is, the game is reset by setting various game-related variables to their initial state.
                 if e.key == py.K_r:
                     game_over = False
                     game_state = chess_engine.game_state()
@@ -171,22 +251,20 @@ def main():
                     square_selected = ()
                     player_clicks = []
                     valid_moves = []
+                #If it is, the last move made in the game is undone by calling the undo_move()
                 elif e.key == py.K_u:
                     game_state.undo_move()
                     print(len(game_state.move_log))
 
-        draw_game_state(screen, game_state, valid_moves, square_selected)
 
-        endgame = game_state.checkmate_stalemate_checker()
-        if endgame == 0:
-            game_over = True
-            draw_text(screen, "Black wins.")
-        elif endgame == 1:
-            game_over = True
-            draw_text(screen, "White wins.")
-        elif endgame == 2:
-            game_over = True
-            draw_text(screen, "Stalemate.")
+
+        #end of for loop
+
+        draw_game_state(screen, game_state, valid_moves, square_selected)
+        # checks if the game ended by checking if there is no possible moves but not by checking if the king is capttured....
+
+
+
 
         clock.tick(MAX_FPS)
         py.display.flip()
